@@ -1,4 +1,4 @@
-# 👨‍💻 Flutter Developer | Full Stack Developer | Tech Enthusiast
+# 👨‍💻 Flutter Developer | Tech Enthusiast
 
 Hello there! I'm a passionate **Flutter Developer** with a strong background in various programming languages and frameworks. I specialize in creating beautiful and responsive mobile applications using **Flutter**, **Dart**, and **Kotlin**. I also work with **Firebase**, **Android**, **HTML/CSS**, **JavaScript**, **C**, **Python**, and more.
 
