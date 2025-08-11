@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../providers/credit_provider.dart';
+import '../blocs/credit_bloc.dart';
 import 'video_preview_screen.dart';
 
 class TextToVideoScreen extends StatefulWidget {
@@ -19,53 +19,55 @@ class _TextToVideoScreenState extends State<TextToVideoScreen> {
   bool _isGenerating = false;
 
   Future<void> _generateVideo() async {
-    final credits = context.read<CreditProvider>();
-    if (!_isGenerating) {
-      if (!credits.spendCredit()) {
-        _showPurchaseDialog();
-        return;
-      }
-      final prompt = _controller.text.trim();
-      if (prompt.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a prompt.')),
-        );
-        credits.addCredits(1); // refund
-        return;
-      }
+    final creditBloc = context.read<CreditBloc>();
+    if (_isGenerating) return;
 
-      setState(() => _isGenerating = true);
-      // Show loading animation
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => Center(
-          child: SizedBox(
-            width: 200,
-            height: 200,
-            child: Lottie.network(
-              'https://assets10.lottiefiles.com/private_files/lf30_m6j5igxb.json',
-              fit: BoxFit.contain,
-            ),
+    if (creditBloc.state.credits <= 0) {
+      _showPurchaseDialog();
+      return;
+    }
+
+    final prompt = _controller.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a prompt.')),
+      );
+      return;
+    }
+
+    // Deduct credit
+    creditBloc.add(const SpendCredit());
+
+    setState(() => _isGenerating = true);
+
+    // Show loading animation
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: SizedBox(
+          width: 200,
+          height: 200,
+          child: Lottie.network(
+            'https://assets10.lottiefiles.com/private_files/lf30_m6j5igxb.json',
+            fit: BoxFit.contain,
           ),
         ),
+      ),
+    );
+
+    // Simulate processing delay
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (mounted) Navigator.of(context).pop(); // Close animation dialog
+
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => VideoPreviewScreen(prompt: prompt)),
       );
-
-      // Simulate processing delay
-      await Future.delayed(const Duration(seconds: 5));
-
-      if (mounted) Navigator.of(context).pop(); // Close animation dialog
-
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => VideoPreviewScreen(prompt: prompt),
-          ),
-        );
-      }
-
-      setState(() => _isGenerating = false);
     }
+
+    setState(() => _isGenerating = false);
   }
 
   void _showPurchaseDialog() {
@@ -80,7 +82,7 @@ class _TextToVideoScreenState extends State<TextToVideoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final creditCount = context.watch<CreditProvider>().credits;
+    final creditCount = context.select((CreditBloc bloc) => bloc.state.credits);
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Text-to-Video'),
@@ -133,10 +135,10 @@ class _PurchaseSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final creditProvider = context.read<CreditProvider>();
+    final creditBloc = context.read<CreditBloc>();
 
     void purchase(int amount) {
-      creditProvider.addCredits(amount);
+      creditBloc.add(AddCredits(amount: amount));
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Purchased $amount credits!')),
@@ -195,7 +197,7 @@ class _CreditPack extends StatelessWidget {
             const SizedBox(height: 4),
             const Text('credits'),
             const SizedBox(height: 8),
-            Text(' 24${price.toStringAsFixed(2)}'),
+            Text('\$${price.toStringAsFixed(2)}'),
           ],
         ),
       ),

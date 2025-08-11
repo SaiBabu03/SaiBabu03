@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'providers/credit_provider.dart';
+import 'blocs/credit_bloc.dart';
 import 'screens/text_to_video_screen.dart';
 
 void main() {
@@ -13,9 +13,9 @@ class TextToVideoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return MultiBlocProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => CreditProvider()),
+        BlocProvider(create: (_) => CreditBloc()),
       ],
       child: MaterialApp(
         title: 'AI Text-to-Video',
